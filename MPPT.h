@@ -21,7 +21,14 @@ class MPPT{
     MPPT(PinName I_pin,PinName V_pin,PinName PWM_pin);
     float readI(); // read from current sensor
     float readV(); // read from voltage sensor
-    void PerturbObserve(); // Perturb and Observe MPP Tracking algorithm
+    float readP(); // return last calculated power
+
+    /* Perturb and Observe MPP Tracking algorithm.
+    Optional Target argument in case a lower power point needs to be tracked is given as a fraction.
+    So if Target = 0.5 then the target power is 0.5 times the current PV power*/
+    void PerturbObserve(float Target); 
+
+    void pause(); // stop tracking power point, open PWM switch
 };
 
 MPPT::MPPT(PinName I_pin,PinName V_pin,PinName PWM_pin){
@@ -29,7 +36,7 @@ MPPT::MPPT(PinName I_pin,PinName V_pin,PinName PWM_pin){
   AnalogIn Vin(V_pin); // Set V_pin as an Analog Input source
   PwmOut PWMout(PWM_pin); // Set PWM_pin as a PWM output
 
-  //Store locations of In/Output Objects as class variables
+  // Store locations of In/Output Objects as class variables
   CurrentSensor = &Iin;
   VoltageSensor = &Vin;
   PwmOutput = &PWMout;
@@ -46,17 +53,33 @@ float MPPT::readV(){
   return VoltageSensor->read(); // return read voltage
 }
 
-void MPPT::PerturbObserve(){
+float MPPT::readP(){
+  return PreviousPower; // return last calculated power
+}
+
+void MPPT::PerturbObserve(float Target = 0){
   //observe
   I = CurrentSensor->read(); // read current sensor
   V = VoltageSensor->read(); // read voltage sensor
   P = I*V; // calculate power
 
   //perturb
-  if (P < PreviousPower) { // if previous perturbation resulted in loss of power
-    Perturbation = -Perturbation; // reverse perturbation direction
+  if (Target == 0) { // No target given -> Track MPPT
+    if (P < PreviousPower) { // if previous perturbation resulted in loss of power
+      Perturbation = -Perturbation; // reverse perturbation direction
+    }
+    DutyCycle = DutyCycle+Perturbation; // Apply Perturbation
   }
-  DutyCycle = DutyCycle+Perturbation; // Apply Perturbation
+  else { // Track target
+    Target = P*Target; // Set target to be the target power
+    if (P>Target){
+      Perturbation = abs(Perturbation); // set perturbation to positive
+    }
+    else {
+      Perturbation = -abs(Perturbation); // set perturbation to negative
+    }
+    
+  }
 
   // Constrain duty cycle to be in between 0 and 1
   if (DutyCycle < 0) {DutyCycle = 0;}
@@ -65,4 +88,8 @@ void MPPT::PerturbObserve(){
   PwmOutput->write(DutyCycle); // write PWM
   
   PreviousPower = P; // store calculated power  
+}
+
+void MPPT::pause(){
+  PwmOutput->write(0); // Open MOSFET
 }
