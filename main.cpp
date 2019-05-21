@@ -28,10 +28,17 @@ float Target; // Target variable to be sent to MPPTs in case they need to track 
 #define V2 PA_3 // Voltage sensor
 #define PWM2 PA_9 // Pulse width modulation output
 
+//Pins for charge Controller
+#define Vbat PA_4 // Battery voltage sensor
+#define Iload PA_5 // Load current sensor
+#define PvSw PA_6 // Pin out to switches connecting Solar cells to MPPTs
+#define BatSw PA_7 // Switch which can enable battery charging
+
+
 MPPT MPPT1(I1,V1,PWM1); // Create Maximum Power Point Tracker 1
 MPPT MPPT2(I2,V2,PWM2); // Create Maximum Power Point Tracker 2
 
-ChargeController CC(PA_4,PA_5,PA_6,PA_7); // Create Charge Controller object
+ChargeController CC(Vbat,Iload,PvSw,BatSw); // Create Charge Controller object
 
 int main() {
     while(1) {
