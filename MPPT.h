@@ -32,14 +32,9 @@ class MPPT{
 };
 
 MPPT::MPPT(PinName I_pin,PinName V_pin,PinName PWM_pin){
-  AnalogIn Iin(I_pin); // Set I_pin as an Analog Input source
-  AnalogIn Vin(V_pin); // Set V_pin as an Analog Input source
-  PwmOut PWMout(PWM_pin); // Set PWM_pin as a PWM output
-
-  // Store locations of In/Output Objects as class variables
-  CurrentSensor = &Iin;
-  VoltageSensor = &Vin;
-  PwmOutput = &PWMout;
+  CurrentSensor = new AnalogIn(I_pin);
+  VoltageSensor = new AnalogIn(V_pin);
+  PwmOutput = new PwmOut(PWM_pin);
 
   Perturbation = 0.01;// the change in the duty cycle
   PwmOutput->period_us(100); // set PWM frequency to 10kHz (1/100us = 10kHz)
