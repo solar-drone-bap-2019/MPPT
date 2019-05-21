@@ -39,17 +39,10 @@ class ChargeController{
 };
 
 ChargeController::ChargeController(PinName BatVPin, PinName LoadIPin, PinName PvSwPin, PinName BatSwPin){
-    AnalogIn Vb(BatVPin); // set BatVoltagePin as analog input source
-    AnalogIn Il(LoadIPin); // set LoadCurrentPin as analog input source
-    DigitalOut SwPv(PvSwPin); // set PvSwPin as digital output
-    DigitalOut SwB(BatSwPin); // set BatSwPin as digital output
-    
-
-    // Store memory locations of In/Output Objects as class variables
-    BatVoltageSensor = &Vb;
-    LoadCurrentSensor = &Il;
-    PvSwitch = &SwPv;
-    BatSwitch = &SwB;
+    BatVoltageSensor = new AnalogIn(BatVPin);
+    LoadCurrentSensor = new AnalogIn(LoadIPin);
+    PvSwitch = new DigitalOut(PvSwPin);
+    BatSwitch = new DigitalOut(BatSwPin);
 };
 
 int ChargeController::readControl(){
