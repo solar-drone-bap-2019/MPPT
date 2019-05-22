@@ -34,7 +34,7 @@ class ChargeController{
         ChargeController(PinName BatVPin, PinName LoadIPin, PinName PvSwPin, PinName BatSwPin);
         void run(); // Execute charge controller algorithm
         int readControl(); // Allows the control signal to be read
-        float readTarget(); // Allows the target variable to be read, description given in MPPT class
+        float readPload(); // Allows the load power to be read
 
 };
 
@@ -49,13 +49,13 @@ int ChargeController::readControl(){
     return Control; // Return control signal
 }
 
-float ChargeController::readTarget(){
-    return Pload/Ppv; // Return fraction of Pload and Ppv
+float ChargeController::readPload(){
+    return Pload; // Return Pload
 }
 
 void ChargeController::run(){
     Vbat = BatVoltageSensor->read(); // read battery voltage
-    SoC = VbMax/Vbat; // Determine state of charge //// This formula is incorrect, need to change
+    SoC = Vbat/VbMax*100; // Determine state of charge [%] //// This formula is incorrect, need to change
     Iload = LoadCurrentSensor->read(); // read load current
     Vload = Vbat; // Load is in parallel with the batteries   
     Pload = Iload*Vload; // Calculate power used by the load
@@ -96,9 +96,6 @@ void ChargeController::run(){
         Control = 0; // Track MPPT
         PvSwitch->write(close); // Connect PV
         BatSwitch->write(open); // PV power is too low to charge the batteries
-    }
-
-
-    
+    }  
 
 }
