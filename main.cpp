@@ -16,46 +16,46 @@ int Control;
 
 float Target; // Target variable to be sent to MPPTs in case they need to track a lower power point
 
-/* All pins still need to be verified */
-
 // Pins for tracking group 1
 #define I1 PA_0 // Current sensor
 #define V1 PA_1 // Voltage sensor
-#define PWM1 PA_8 // Pulse width modulation output
+#define PWM1 PA_3 // Pulse width modulation output
 
-// Pins for tracking group 2
-#define I2 PA_2 // Current sensor
-#define V2 PA_3 // Voltage sensor
-#define PWM2 PA_9 // Pulse width modulation output
+/* Pins for tracking group 2 */
 
 //Pins for charge Controller
-#define Vbat PA_4 // Battery voltage sensor
-#define Iload PA_5 // Load current sensor
-#define PvSw PA_6 // Pin out to switches connecting Solar cells to MPPTs
-#define BatSw PA_7 // Switch which can enable battery charging
+#define Vbat PA_5 // Battery voltage sensor
+#define Iload PA_6 // Load current sensor
+#define PvSw PA_7 // Pin out to switches connecting Solar cells to MPPTs
+#define BatSw PA_8 // Switch which can enable battery charging
 
 
 MPPT MPPT1(I1,V1,PWM1); // Create Maximum Power Point Tracker 1
-MPPT MPPT2(I2,V2,PWM2); // Create Maximum Power Point Tracker 2
+/* Create Maximum Power Point Tracker 2 */
 
 ChargeController CC(Vbat,Iload,PvSw,BatSw); // Create Charge Controller object
 
+
+// define the Serial object, for debugging
+Serial pc(USBTX, USBRX);
+
 int main() {
     while(1) {
-        CC.run();
-        Control = CC.readControl();
+        CC.Ppv = MPPT1.readP(); // Send measured solar power to the charge controller
+        CC.run(); // execute charge controller algorithm
+        Control = CC.readControl(); // read control variable
         if (Control == 0) { // Track MPPT
             MPPT1.PerturbObserve(); // Execute the P&O algorithm for tracking group 1
-            MPPT2.PerturbObserve(); // Execute the P&O algorithm for tracking group 2
+            /* Execute the P&O algorithm for tracking group 2 */
         }
         else if (Control == 1) { // Pause the MPPT algorithm    
             MPPT1.pause(); 
-            MPPT2.pause();
+            /* pause MPPT2 */
         }
         else if (Control == 2) { // Track Target power
-            Target = CC.readTarget(); // read target variable.
+            Target = CC.readPload(); // read target variable.
             MPPT1.PerturbObserve(Target);
-            MPPT2.PerturbObserve(Target);
+            /* Track target MPPT2 */
         }      
 
         // MPPT doesn't need to happen very fast   
