@@ -24,8 +24,7 @@ class MPPT{
     float readP(); // return last calculated power
 
     /* Perturb and Observe MPP Tracking algorithm.
-    Optional Target argument in case a lower power point needs to be tracked is given as a fraction.
-    So if Target = 0.5 then the target power is 0.5 times the current PV power*/
+    Optional target power argument in case a lower power point needs to be tracked.*/
     void PerturbObserve(float Target); 
 
     void pause(); // stop tracking power point, open PWM switch
@@ -58,23 +57,23 @@ void MPPT::PerturbObserve(float Target = 0){
   V = VoltageSensor->read(); // read voltage sensor
   P = I*V; // calculate power
 
-  //perturb
+  /*perturb*/
   if (Target == 0) { // No target given -> Track MPPT
     if (P < PreviousPower) { // if previous perturbation resulted in loss of power
       Perturbation = -Perturbation; // reverse perturbation direction
     }
-    DutyCycle = DutyCycle+Perturbation; // Apply Perturbation
-  }
-  else { // Track target
-    Target = P*Target; // Set target to be the target power
-    if (P>Target){
-      Perturbation = abs(Perturbation); // set perturbation to positive
-    }
-    else {
-      Perturbation = -abs(Perturbation); // set perturbation to negative
-    }
     
   }
+  else { // Track target
+    if (P>Target){
+      Perturbation = -abs(Perturbation); // set perturbation to negative
+    }
+    else {
+      Perturbation = abs(Perturbation); // set perturbation to positive
+    }  
+  }
+  DutyCycle = DutyCycle+Perturbation; // Apply Perturbation
+  /*       */
 
   // Constrain duty cycle to be in between 0 and 1
   if (DutyCycle < 0) {DutyCycle = 0;}
@@ -86,5 +85,12 @@ void MPPT::PerturbObserve(float Target = 0){
 }
 
 void MPPT::pause(){
+  /* Don't set DutyCycle variable to zero,
+  because we want to save it for when MPPT is resumed. 
+  Instead just write a zero to PwmOutput*/
   PwmOutput->write(0); // Open MOSFET
+  I = CurrentSensor->read(); // read current sensor
+  V = VoltageSensor->read(); // read voltage sensor
+  P = I*V; // calculate power (should be zero)
+  PreviousPower = P;
 }
