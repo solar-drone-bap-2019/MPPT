@@ -11,6 +11,8 @@ And controls the power flow in the system, to maximize solar power usage, withou
 0 = track MPPT
 1 = pause MPPT
 2 = track Pload
+3 = overcurrent protection (track lower PP)
+4 = reset MPPT
 */
 int Control; 
 
@@ -53,12 +55,19 @@ int main() {
             /* pause MPPT2 */
         }
         else if (Control == 2) { // Track Target power
-            Target = CC.readPload(); // read target variable.
+            Target = CC.readPload(); // read Pload as target power.
             MPPT1.PerturbObserve(Target);
             /* Track target MPPT2 */
         }      
+        else if (Control == 3){ // Prevent overcurrent in battery
+            Target = CC.readPload() + CC.readPbatMax(); // Track load power + maximum allowed battery charging power
+            MPPT1.PerturbObserve(Target);
+        }
+        else if (Control == 4){
+            MPPT1.reset();
+        }
 
         // MPPT doesn't need to happen very fast   
-        wait_ms(10); // Track the power point every 10 ms
+        wait_ms(1); // Track the power point every 10 ms
     }
 }
