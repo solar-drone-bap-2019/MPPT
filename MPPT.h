@@ -1,5 +1,10 @@
 #include "mbed.h"
 
+const float PERTURB_CONST = 0.01;
+const float PERIOD_US = 100; // [us] PWM period
+const float CURRENT_SENSOR_MAX = 11; // [A] maximum current the sensor is able to sense properly
+const float VOLTAGE_SENSOR_MAX = 9; // [V] maximum voltage the sensor is able to sense properly
+
 float I, V, P; // Variables for Current, Voltage and Power
 
 
@@ -28,6 +33,7 @@ class MPPT{
     void PerturbObserve(float Target); 
 
     void pause(); // stop tracking power point, open PWM switch
+    void reset(); // stop tracking power point, reset duty cycle to zero
 };
 
 MPPT::MPPT(PinName I_pin,PinName V_pin,PinName PWM_pin){
@@ -35,16 +41,16 @@ MPPT::MPPT(PinName I_pin,PinName V_pin,PinName PWM_pin){
   VoltageSensor = new AnalogIn(V_pin);
   PwmOutput = new PwmOut(PWM_pin);
 
-  Perturbation = 0.01;// the change in the duty cycle
-  PwmOutput->period_us(100); // set PWM frequency to 10kHz (1/100us = 10kHz)
+  Perturbation = PERTURB_CONST;// the change in the duty cycle
+  PwmOutput->period_us(PERIOD_US); // set PWM frequency to 10kHz (1/100us = 10kHz)
 };
 
 float MPPT::readI(){
-  return CurrentSensor->read(); // return read current
+  return CurrentSensor->read() * CURRENT_SENSOR_MAX; // return read current
 }
 
 float MPPT::readV(){
-  return VoltageSensor->read(); // return read voltage
+  return VoltageSensor->read() * VOLTAGE_SENSOR_MAX; // return read voltage
 }
 
 float MPPT::readP(){
@@ -53,8 +59,8 @@ float MPPT::readP(){
 
 void MPPT::PerturbObserve(float Target = 0){
   //observe
-  I = CurrentSensor->read(); // read current sensor
-  V = VoltageSensor->read(); // read voltage sensor
+  I = readI(); // read current sensor
+  V = readV(); // read voltage sensor
   P = I*V; // calculate power
 
   /*perturb*/
@@ -89,8 +95,18 @@ void MPPT::pause(){
   because we want to save it for when MPPT is resumed. 
   Instead just write a zero to PwmOutput*/
   PwmOutput->write(0); // Open MOSFET
-  I = CurrentSensor->read(); // read current sensor
-  V = VoltageSensor->read(); // read voltage sensor
+  I = readI(); // read current sensor
+  V = readV(); // read voltage sensor
+  P = I*V; // calculate power (should be zero)
+  PreviousPower = P;
+}
+
+void MPPT::reset(){
+  /* reset DutyCycle to zero */
+  DutyCycle = 0;
+  PwmOutput->write(DutyCycle);
+  I = readI(); // read current sensor
+  V = readV(); // read voltage sensor
   P = I*V; // calculate power (should be zero)
   PreviousPower = P;
 }
