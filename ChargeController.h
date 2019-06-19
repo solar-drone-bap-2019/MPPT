@@ -38,7 +38,7 @@ class ChargeController{
         AnalogIn *BatVoltageSensor; // Pointer to the Battery Voltage Sensor object
         AnalogIn *LoadCurrentSensor; // Pointer to the Load Current Sensor object
 
-        DigitalOut *PvSwitch; // This switch can disconnect the PV system from the batteries and load
+
         DigitalOut *BatSwitch; // This switch can disconnect the Batteries from the PV system, not allowing them to charge
 
         float readVbat(){
@@ -50,17 +50,16 @@ class ChargeController{
 
     public:
         float Ppv; // Incoming power from solar panels
-        ChargeController(PinName BatVPin, PinName LoadIPin, PinName PvSwPin, PinName BatSwPin);
+        ChargeController(PinName BatVPin, PinName LoadIPin, PinName BatSwPin);
         void run(); // Execute charge controller algorithm
         int readControl(); // Allows the control signal to be read
         float readPload(); // Allows the load power to be read
         float readPbatMax(); // Allows PbatMax to be read
 };
 
-ChargeController::ChargeController(PinName BatVPin, PinName LoadIPin, PinName PvSwPin, PinName BatSwPin){
+ChargeController::ChargeController(PinName BatVPin, PinName LoadIPin, PinName BatSwPin){
     BatVoltageSensor = new AnalogIn(BatVPin);
     LoadCurrentSensor = new AnalogIn(LoadIPin);
-    PvSwitch = new DigitalOut(PvSwPin);
     BatSwitch = new DigitalOut(BatSwPin);
 };
 
@@ -87,43 +86,34 @@ void ChargeController::run(){
 
     if(Ibat >= IbatDanger){ // Battery charging current is dangerously high
         Control = 4; // Reset MPPT (open MOSFET and reset duty cycle to zero)
-        // open both switches
-        PvSwitch->write(open); // PV power must be cut off,
-        BatSwitch->write(open); // As the battery should quickly discharge to a safe level 
+        BatSwitch->write(open); // Disconnect battery 
 
     }
     if (SoC >= SoCDanger) { // Battery charge is dangerously high
         Control = 1; // Pause MPPT (open MOSFET and pause algorithm)
-        // open both switches
-        PvSwitch->write(open); // PV power must be cut off,
-        BatSwitch->write(open); // As the battery should quickly discharge to a safe level      
+        BatSwitch->write(open); // Disconnect battery
     }
 
     else if (SoC >= SoCMax && Ppv >= Pload) { // Both SoC and Ppv are too high
         Control = 2; // Tell main loop to read Pload. MPPTs must try to set Ppv equal to Pload
-        PvSwitch->write(close); // Keep PV connected to supply load power
         BatSwitch->write(close); // Keep Battery connected to absorb excess current        
     }
 
     else if (Ibat >= IbatMax){ // Battery charging current is very high, but within limits
         Control = 3; // Track lower power point
-        
-        PvSwitch->write(close);
-        BatSwitch->write(close);
+        BatSwitch->write(close); // charge battery
         
     }    
 
     /*  Might need to implement some control algorithm in case of low voltage */
     else if (SoC <= SoCMin){ // Battery charge is too low
         Control = 0;
-        PvSwitch->write(close);
-        BatSwitch->write(close);
+        BatSwitch->write(open); // prevent further discharging
     }
 
      else 
     {
         Control = 0;
-        PvSwitch->write(close); 
         BatSwitch->write(close);     
     }
 }
