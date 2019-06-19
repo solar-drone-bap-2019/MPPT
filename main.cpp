@@ -28,14 +28,13 @@ float Target; // Target variable to be sent to MPPTs in case they need to track 
 //Pins for charge Controller
 #define Vbat PA_5 // Battery voltage sensor
 #define Iload PA_6 // Load current sensor
-#define PvSw PA_7 // Pin out to switches connecting Solar cells to MPPTs
 #define BatSw PA_8 // Switch which can enable battery charging
 
 
 MPPT MPPT1(I1,V1,PWM1); // Create Maximum Power Point Tracker 1
 /* Create Maximum Power Point Tracker 2 */
 
-ChargeController CC(Vbat,Iload,PvSw,BatSw); // Create Charge Controller object
+ChargeController CC(Vbat,Iload,BatSw); // Create Charge Controller object
 
 
 // define the Serial object, for debugging
